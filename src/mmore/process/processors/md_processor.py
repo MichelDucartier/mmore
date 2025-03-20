@@ -18,7 +18,7 @@ class MarkdownProcessor(Processor):
 
     Attributes:
         files (List[FileDescriptor]): List of Markdown files to be processed.
-        config (ProcessorConfig): Configuration for the processor, including options such as the 
+        config (ProcessorConfig): Configuration for the processor, including options such as the
                                    placeholder tag for embedded images (e.g., "<attachment>").
         md (markdown.Markdown): Instance of the Markdown parser used to convert content to HTML.
     """
@@ -32,7 +32,7 @@ class MarkdownProcessor(Processor):
         self.md = markdown.Markdown()
 
     @classmethod
-    def accepts(cls, file: FileDescriptor) -> bool: 
+    def accepts(cls, file: FileDescriptor) -> bool:
         """
         Args:
             file (FileDescriptor): The file descriptor to check.
@@ -78,7 +78,7 @@ class MarkdownProcessor(Processor):
     @staticmethod
     def process_md(content: str, file_path: str, attachment_tag: str = None, extract_images: bool = True) -> (str, list[Image.Image]):
         """
-        The actual proccessing logic for Markdown files. 
+        The actual proccessing logic for Markdown files.
 
         Args:
             content (str): The content of the Markdown file.
@@ -140,5 +140,5 @@ class MarkdownProcessor(Processor):
             html = html.replace(tag, "#attachment")
 
         content = markdownify.markdownify(html)
-        content = content.replace("#attachment", attachment_tag if attachment_tag else "<attachment>")
+        content = content.replace("#attachment", attachment_tag if attachment_tag else self.config.attachment_tag)
         return content, embedded_images

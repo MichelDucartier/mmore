@@ -19,23 +19,23 @@ logger = logging.getLogger(__name__)
 
 class ComputeDescriptor:
     @staticmethod
-    def get_desc() -> None:
+    def get_desc() -> Dict[str, Any]:
         if torch.cuda.is_available():
             num_gpus = torch.cuda.device_count()
             if num_gpus > 0:
                 gpu_size = torch.cuda.get_device_properties(0).total_memory
                 # All GPUs are assumed to have the same size
                 logging.info(
-                    f"Detected {num_gpus} GPUs with {gpu_size} bytes of memory."
-                )
+                        f"Detected {num_gpus} GPUs with {gpu_size} bytes of memory."
+                        )
         else:
             num_gpus = 0
             gpu_size = None
 
         return {
-            "num_gpus": num_gpus,
-            "gpu_size": gpu_size,
-        }
+                "num_gpus": num_gpus,
+                "gpu_size": gpu_size,
+                }
 
 
 from dataclasses import dataclass
@@ -43,10 +43,10 @@ from dataclasses import dataclass
 class DispatcherConfig:
     """
     A configuration class for the dispatcher.
-    
+
     Save the results to the output path.
     Following sturcture is used:
-    
+
     output_path
     ├── processors
     |   ├── Processor_type_1
@@ -54,10 +54,10 @@ class DispatcherConfig:
     |   ├── Processor_type_2
     |   |   └── results.jsonl
     |   ├── ...
-    |   
+    |
     └── merged
         └── merged_results.jsonl
-            
+
     """
     output_path: str
     use_fast_processors: bool = True
@@ -68,6 +68,7 @@ class DispatcherConfig:
     batch_multiplier: int = 1
     extract_images: bool = False
     dashboard_backend_url: Optional[str] = None
+    attachment_tag: Optional[str] = None
 
     def __post_init__(self):
         os.makedirs(self.output_path, exist_ok=True)
@@ -76,16 +77,17 @@ class DispatcherConfig:
     def from_dict(config: Dict) -> "DispatcherConfig":
         """Create a DispatcherConfig object from a dictionary."""
         return DispatcherConfig(
-            output_path=config["output_path"],
-            use_fast_processors=config.get("use_fast_processors", True),
-            distributed=config.get("distributed", False),
-            scheduler_file=config.get("scheduler_file"),
-            processor_config=config.get("processor"),
-            process_batch_sizes=config.get("process_batch_sizes"),
-            batch_multiplier=config.get("batch_multiplier", 1),
-            extract_images=config.get("extract_images", False),
-            dashboard_backend_url=config.get("dashboard_backend_url", None)
-        )
+                output_path=config["output_path"],
+                use_fast_processors=config.get("use_fast_processors", True),
+                distributed=config.get("distributed", False),
+                scheduler_file=config.get("scheduler_file"),
+                processor_config=config.get("processor"),
+                process_batch_sizes=config.get("process_batch_sizes"),
+                batch_multiplier=config.get("batch_multiplier", 1),
+                extract_images=config.get("extract_images", False),
+                dashboard_backend_url=config.get("dashboard_backend_url", None),
+                attachment_tag=config.get("attachment_tag", "<attachment>")
+                )
 
     @staticmethod
     def from_yaml(yaml_path: str):
@@ -101,32 +103,34 @@ class DispatcherConfig:
     def to_dict(self) -> Dict:
         """Convert the DispatcherConfig object to a dictionary."""
         return {
-            "use_fast_processors": self.use_fast_processors,
-            "distributed": self.distributed,
-            "scheduler_file": self.scheduler_file,
-            "output_path": self.output_path,
-            "processor": self.processor_config,
-            "process_batch_sizes": self.process_batch_sizes,
-            "batch_multiplier": self.batch_multiplier,
-            "extract_images": self.extract_images,
-            "dashboard_backend_url": self.dashboard_backend_url
-        }
+                "use_fast_processors": self.use_fast_processors,
+                "distributed": self.distributed,
+                "scheduler_file": self.scheduler_file,
+                "output_path": self.output_path,
+                "processor": self.processor_config,
+                "process_batch_sizes": self.process_batch_sizes,
+                "batch_multiplier": self.batch_multiplier,
+                "extract_images": self.extract_images,
+                "dashboard_backend_url": self.dashboard_backend_url,
+                "attachment_tag" : self.attachment_tag
+                }
 
     def __str__(self) -> str:
         """Return a string representation of the DispatcherConfig object."""
         return (
-            f"DispatcherConfig("
-            f"use_fast_processors={self.use_fast_processors}, "
-            f"distributed={self.distributed}, "
-            f"scheduler_file={self.scheduler_file}, "
-            f"output_path={self.output_path}, "
-            f"processor_config={self.processor_config}, "
-            f"process_batch_sizes={self.process_batch_sizes}, "
-            f"batch_multiplier={self.batch_multiplier}"
-            f"extract_images={self.extract_images}"
-            f"dashboard_backend_url={self.dashboard_backend_url}"
-            f")"
-        )
+                f"DispatcherConfig("
+                f"use_fast_processors={self.use_fast_processors}, "
+                f"distributed={self.distributed}, "
+                f"scheduler_file={self.scheduler_file}, "
+                f"output_path={self.output_path}, "
+                f"processor_config={self.processor_config}, "
+                f"process_batch_sizes={self.process_batch_sizes}, "
+                f"batch_multiplier={self.batch_multiplier}"
+                f"extract_images={self.extract_images}"
+                f"dashboard_backend_url={self.dashboard_backend_url}"
+                f"attachment_tag={self.attachment_tag}"
+                f")"
+                )
 
 
 class Dispatcher:
@@ -139,7 +143,7 @@ class Dispatcher:
             result: DispatcherReadyResult,
             config: DispatcherConfig,
             start_cluster=False,
-    ):
+            ):
         self.result = result
         self.config = config
         self.start_cluster = start_cluster
@@ -151,8 +155,8 @@ class Dispatcher:
         """
 
         processor_map = {
-            processor: [] for processor in ProcessorRegistry.get_processors()
-        }
+                processor: [] for processor in ProcessorRegistry.get_processors()
+                }
 
         for file_path_list in self.result.file_paths.values():
             for file in file_path_list:
@@ -167,7 +171,7 @@ class Dispatcher:
 
     def _dispatch_local(
             self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
-    ) -> Any:
+            ) -> Any:
         """
         Dispatches the tasks locally.
         """
@@ -182,9 +186,9 @@ class Dispatcher:
             processor_config['extract_images'] = self.config.extract_images
 
             logger.info(
-                f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
-            )
-            processor_config = ProcessorConfig(dashboard_url=self.config.dashboard_backend_url, custom_config=processor_config)
+                    f"Dispatching locally {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
+                    )
+            processor_config = ProcessorConfig(dashboard_backend_url=self.config.dashboard_backend_url, custom_config=processor_config, attachement_tag=self.config.attachment_tag)
             proc = processor(processor_config)
             res = proc(files, self.config.use_fast_processors)
             self.save_individual_processor_results(res, processor.__name__)
@@ -192,7 +196,7 @@ class Dispatcher:
 
     def _dispatch_distributed(
             self, task_lists: List[Tuple[Type[Processor], List[FileDescriptor]]]
-    ) -> List[List[MultimodalSample]]:
+            ) -> List[List[MultimodalSample]]:
         kwargs = {}
         if self.config.scheduler_file:
             absolute_scheduler_path = os.path.join(os.getcwd(), self.config.scheduler_file)
@@ -213,8 +217,8 @@ class Dispatcher:
             processor_config['extract_images'] = self.config.extract_images
 
             logger.info(
-                f"Dispatching in distributed (to some worker) {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
-            )
+                    f"Dispatching in distributed (to some worker) {len(files)} files with ({sum([processor.get_file_len(file) for file in files])}) pages to {processor.__name__}"
+                    )
 
             processor_config = ProcessorConfig(dashboard_url=self.dashboard_url, custom_config=processor_config)
 
@@ -230,7 +234,7 @@ class Dispatcher:
         results = []
         for future, (result, processor_name) in tqdm(
                 as_completed(futures, with_results=True), total=len(futures)
-        ):
+                ):
             try:
                 results.append(result)
                 self.save_individual_processor_results(result, processor_name)
@@ -246,7 +250,7 @@ class Dispatcher:
 
         def batch_list(
                 lst: List, obj_batch_size: int, processor: Type[Processor]
-        ) -> List[List]:
+                ) -> List[List]:
             """
             Creates optimized batches using best-fit decreasing algorithm.
 
@@ -296,10 +300,10 @@ class Dispatcher:
         for processor, file_list in self.intermediate_map.items():
             if len(file_list) > 0:
                 batched_files = batch_list(
-                    file_list,
-                    self.config.batch_multiplier * batch_sizes.get(processor.__name__, 100),
-                    processor,
-                )
+                        file_list,
+                        self.config.batch_multiplier * batch_sizes.get(processor.__name__, 100),
+                        processor,
+                        )
                 task_lists.extend([(processor, batch) for batch in batched_files])
         results = []
         if self.config.distributed:

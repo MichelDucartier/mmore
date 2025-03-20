@@ -41,16 +41,16 @@ class PDFProcessor(Processor):
 
             if num_gpus == 1 or len(files) < 10: # 1 GPU available or length of files is less than 10 we just do single-GPU
                 marker_config = {
-                    "disable_image_extraction": not self.config.custom_config.get("extract_images", True),
-                    "languages": None,
-                    "use_llm": False,
-                    "disable_multiprocessing": False,
-                }
+                        "disable_image_extraction": not self.config.custom_config.get("extract_images", True),
+                        "languages": None,
+                        "use_llm": False,
+                        "disable_multiprocessing": False,
+                        }
                 config_parser = ConfigParser(marker_config)
                 self.converter = PdfConverter(
-                    artifact_dict=create_model_dict(),
-                    config=config_parser.generate_config_dict()
-                )
+                        artifact_dict=create_model_dict(),
+                        config=config_parser.generate_config_dict()
+                        )
                 results = []
                 for file_path in files:
                     results.append(self.process(file_path))
@@ -73,9 +73,9 @@ class PDFProcessor(Processor):
                         continue
                     gpu_id = i % num_gpus
                     p = Process(
-                        target=self._process_parallel,
-                        args=(batch, gpu_id, self.config.custom_config, output_queue, error_queue)
-                    )
+                            target=self._process_parallel,
+                            args=(batch, gpu_id, self.config.custom_config, output_queue, error_queue)
+                            )
                     processes.append(p)
                     p.start()
 
@@ -100,7 +100,7 @@ class PDFProcessor(Processor):
     def process(self, file_path: str) -> List[MultimodalSample]:
         rendered = self.converter(file_path)
         text, _, images = text_from_rendered(rendered)
-        text = re.sub(IMG_REGEX, "<attachment>", text)
+        text = re.sub(IMG_REGEX, self.config.attachment_tag, text)
         images = images.values()
         return self.create_sample([text], images, file_path)
 
@@ -168,18 +168,18 @@ class PDFProcessor(Processor):
             torch.cuda.set_device(gpu_id)
 
             marker_config = {
-                "disable_image_extraction": not config_custom.get("extract_images", True),
-                "languages": None,
-                "use_llm": False,
-                "disable_multiprocessing": False,
-                "device": f"cuda:{gpu_id}"
-            }
+                    "disable_image_extraction": not config_custom.get("extract_images", True),
+                    "languages": None,
+                    "use_llm": False,
+                    "disable_multiprocessing": False,
+                    "device": f"cuda:{gpu_id}"
+                    }
 
             config_parser = ConfigParser(marker_config)
             self.converter = PdfConverter(
-                artifact_dict=create_model_dict(),
-                config=config_parser.generate_config_dict()
-            )
+                    artifact_dict=create_model_dict(),
+                    config=config_parser.generate_config_dict()
+                    )
 
             batch_results = []
             for file in files:
